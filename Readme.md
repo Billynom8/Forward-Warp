@@ -1,6 +1,6 @@
 ## Foward Warp Pytorch Version
 
-Has been tested in pytorch=0.4.0, python=3.6, CUDA=9.0
+`[25-05-31]` Updated to work on pytorch=2.5.1, python-3.12, CUDA=12.9
 
 ### Install
 
