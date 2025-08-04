@@ -16,13 +16,17 @@ class forward_warp_function(Function):
         interpolation_mode: 0 is Bilinear, 1 is Nearest
         '''
         assert(len(im0.shape) == len(flow.shape) == 4)
-        assert(interpolation_mode in (0, 1))
+        assert(interpolation_mode is 0 or 1)
         assert(im0.shape[0] == flow.shape[0])
         assert(im0.shape[-2:] == flow.shape[1:3])
         assert(flow.shape[3] == 2)
+        assert(im0.is_contiguous())
+        assert(flow.is_contiguous())
+        assert(torch.isnan(flow).long().sum() == 0)
+        assert(torch.isinf(flow).long().sum() == 0)
 
-        ctx.interpolation_mode = interpolation_mode
         ctx.save_for_backward(im0, flow)
+        ctx.interpolation_mode = interpolation_mode
         if im0.is_cuda:
             im1 = forward_warp_cuda.forward(im0, flow, interpolation_mode)
         else:
@@ -33,12 +37,13 @@ class forward_warp_function(Function):
     @staticmethod
     def backward(ctx, grad_output):
         im0, flow = ctx.saved_variables
+        interpolation_mode = ctx.interpolation_mode
         if grad_output.is_cuda:
             im0_grad, flow_grad = forward_warp_cuda.backward(
-                grad_output, im0, flow, ctx.interpolation_mode)
+                grad_output, im0, flow, interpolation_mode)
         else:
             im0_grad, flow_grad = Forward_Warp_Python.backward(
-                grad_output, im0, flow, ctx.interpolation_mode)
+                grad_output, im0, flow, interpolation_mode)
         return im0_grad, flow_grad, None
 
 
@@ -49,7 +54,7 @@ class forward_warp(Module):
         Support interpolation mode with Bilinear and Nearest.
         '''
         super(forward_warp, self).__init__()
-        assert(interpolation_mode in ("Bilinear", "Nearest"))
+        assert(interpolation_mode is "Bilinear" or "Nearest")
         if(interpolation_mode is "Bilinear"):
             self.interpolation_mode = 0
         else:
